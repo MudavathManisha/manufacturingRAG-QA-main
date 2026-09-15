@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ManufacturingRAG-QA | PCB Quality Inspection</title>
+
+<link rel="stylesheet" href="/css/styles.css">
+
+<link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+>
+
+</head>
+
+<body>
+
+<header class="app-header">
+<div class="brand">
+
+    <div class="brand-mark">
+        M
+    </div>
+
+    <div>
+        <h1>ManufacturingRAG-QA</h1>
+        <p>PCB Quality Inspection</p>
+    </div>
+
+</div>
+
+<div class="header-controls">
+
+    <label class="class-selector">
+
+        <span>
+            <i class="fa-solid fa-shield-halved"></i>
+            Operating Class
+        </span>
+
+        <select id="operatingClass">
+
+            <option value="Class 1">
+                Class 1
+            </option>
+
+            <option value="Class 2">
+                Class 2
+            </option>
+
+            <option value="Class 3" selected>
+                Class 3
+            </option>
+
+        </select>
+
+    </label>
+
+    <div class="system-status">
+
+        <span
+            id="systemStatusDot"
+            class="status-dot"
+        ></span>
+
+        <span id="systemStatusText">
+            Checking...
+        </span>
+
+    </div>
+
+</div>
+
+
+</header>
+
+<nav class="main-nav">
+
+
+<button
+    class="nav-tab active"
+    data-tab="inspection"
+>
+    <span><i class="fa-solid fa-magnifying-glass"></i></span> Inspect PCB
+</button>
+
+<button
+    class="nav-tab"
+    data-tab="fewshot"
+>
+    <span><i class="fa-solid fa-layer-group"></i></span> PCB Categories
+</button>
+
+<button
+    class="nav-tab"
+    data-tab="analytics"
+>
+    <span><i class="fa-solid fa-file-circle-check"></i></span> Audit Reports
+</button>
+
+<button
+    class="nav-tab"
+    data-tab="rag"
+>
+    <span><i class="fa-solid fa-comments"></i></span> Standards Assistant
+</button>
+
+
+</nav>
+
+<main class="main-content">
+
+<!-- =========================================================
+     TAB 1: PCB INSPECTION
+     ========================================================= -->
+
+<section
+    id="tab-inspection"
+    class="page-section active"
+>
+
+
+<div class="page-heading">
+
+    <div>
+
+        <h2>
+            PCB Inspection
+        </h2>
+
+        <p>
+            Upload a PCB image to check for visible defects
+            and review the applicable quality requirement.
+        </p>
+
+    </div>
+
+</div>
+
+
+<div class="inspection-layout">
+
+    <div class="left-column">
+
+        <div class="panel upload-panel">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <h3>
+                        Inspect a PCB
+                    </h3>
+
+                    <p>
+                        Select a PCB image to begin inspection.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div
+                id="imageDropzone"
+                class="image-dropzone"
+            >
+
+                <input
+                    type="file"
+                    id="fileInput"
+                    accept="image/*"
+                    hidden
+                >
+
+                <div class="upload-icon">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                </div>
+
+                <h4>
+                    Upload PCB Image
+                </h4>
+
+                <p>
+                    Drag and drop an image here,
+                    or click to browse.
+                </p>
+
+                <span id="selectedFileName">
+                    No image selected
+                </span>
+
+            </div>
+
+
+            <div class="inspection-actions">
+
+                <button
+                    id="inspectButton"
+                    class="primary-button"
+                    disabled
+                >
+                    Inspect PCB
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="panel image-panel">
+
+            <div class="panel-header">
+
+                <div>
+
+                    <h3>
+                        Inspection Image
+                    </h3>
+
+                    <p>
+                        Model attention visualization.
+                    </p>
+
+                </div>
+
+                <label class="toggle-control">
+
+                    <input
+                        type="checkbox"
+                        id="bboxToggle"
+                    >
+
+                    <span>
+                        Show location
+                    </span>
+
+                </label>
+
+            </div>
+
+
+            <div class="image-viewer">
+
+                <canvas
+                    id="inspectionCanvas"
+                ></canvas>
+
+                <div
+                    id="imagePlaceholder"
+                    class="image-placeholder"
+                >
+
+                    <span>
+                        PCB image will appear here
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="heatmap-controls">
+
+                <label for="alphaSlider">
+                    Visualization intensity
+                </label>
+
+                <input
+                    type="range"
+                    id="alphaSlider"
+                    min="0"
+                    max="100"
+                    value="50"
+                >
+
+                <span id="alphaValue">
+                    50%
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="right-column">
+
+        <div
+            id="inspectionResults"
+            class="panel results-panel"
+        >
+
+            <div class="panel-header">
+
+                <div>
+
+                    <h3>
+                        Inspection Result
+                    </h3>
+
+                    <p>
+                        Current PCB assessment.
+                    </p>
+
+                </div>
+
+                <span
+                    id="confidenceBadge"
+                    class="confidence-badge"
+                > Confidence </span>
+
+            </div>
+
+
+            <div class="result-status">
+
+                <span class="result-label">
+                    Result
+                </span>
+
+                <div
+                    id="predictedClass"
+                    class="prediction-value"
+                > Awaiting inspection </div>
+
+            </div>
+
+
+            <div class="finding-card">
+
+                <span class="result-label">
+                    Finding
+                </span>
+
+                <p id="findingText">
+                    Run an inspection to see the result.
+                </p>
+
+            </div>
+
+
+            <div class="severity-card">
+
+                <div class="severity-header">
+
+                    <div>
+
+                        <span class="result-label">
+                            Audit Severity
+                        </span>
+
+                        <strong id="asiCategory"> - </strong>
+
+                    </div>
+
+                    <div class="asi-score">
+
+                        <span id="asiScore"> - </span>
+
+                        <small>
+                            / 100
+                        </small>
+
+                    </div>
+
+                </div>
+
+                <div class="severity-track">
+
+                    <div
+                        id="asiBar"
+                        class="severity-fill"
+                        style="width: 0%"
+                    ></div>
+
+                </div>
+
+            </div>
+
+
+            <div class="standard-card">
+
+                <div class="card-title">
+                    Applicable Standard
+                </div>
+
+                <div class="standard-clause">
+
+                    <span
+                        id="standardClauseId"
+                        class="clause-id"
+                    > - </span>
+
+                    <h4 id="standardClauseTitle"></h4>
+
+                </div>
+
+                <p id="standardClassRule">
+                    Standard evidence will appear here
+                    after inspection.
+                </p>
+
+            </div>
+
+
+            <div class="action-card">
+
+                <div class="card-title">
+                    Recommended Action
+                </div>
+
+                <p id="reworkProcedure">
+                    No recommendation available.
+                </p>
+
+            </div>
+
+
+            <button
+                id="generateReportButton"
+                class="secondary-button report-button"
+            >
+                Generate Audit Certificate
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+</section>
+
+<!-- =========================================================
+     TAB 2: PCB CATEGORIES
+     ========================================================= -->
+
+<section
+    id="tab-fewshot"
+    class="page-section"
+>
+
+<div class="page-heading">
+    <div>
+        <h2>
+            Continual Learning
+        </h2>
+
+        <p>
+            Incremental PCB learning and few-shot prototype memory.
+        </p>
+    </div>
+</div>
+
+
+<!-- CONTINUAL LEARNING SYSTEM STATUS -->
+
+<div class="cl-overview">
+
+    <div class="cl-title-row">
+        <div>
+            <h3>System Status</h3>
+            <p>
+                Live operational status of the few-shot continual learning engine.
+            </p>
+        </div>
+
+        <div class="cl-status">
+            <span class="cl-status-dot"></span>
+            Ready
+        </div>
+    </div>
+
+
+    <div class="cl-metrics">
+
+        <div class="cl-metric">
+            <span>Active Prototypes</span>
+            <strong id="clActivePrototypesCount">—</strong>
+        </div>
+
+        <div class="cl-metric">
+            <span>Learning Paradigm</span>
+            <strong>Few-Shot ProtoNet</strong>
+        </div>
+
+        <div class="cl-metric">
+            <span>Min. Support Images</span>
+            <strong>1 – 5 images</strong>
+        </div>
+
+        <div class="cl-metric">
+            <span>Model Retraining</span>
+            <strong>Not Required</strong>
+        </div>
+
+    </div>
+
+
+    <div class="cl-conclusion">
+        <i class="fa-solid fa-circle-check"></i>
+
+        <div>
+            <strong>Zero catastrophic forgetting</strong>
+            <p>
+                New defect categories are learned from as few as one support
+                image without overwriting existing knowledge.
+            </p>
+        </div>
+    </div>
+
+</div>
+
+
+<!-- PROTOTYPE MEMORY -->
+
+<div class="panel cl-prototype-panel">
+
+    <div class="panel-header">
+
+        <div>
+            <h3>
+                Few-Shot Prototype Memory
+            </h3>
+
+            <p>
+                Defect prototypes currently available to ProtoNet.
+            </p>
+        </div>
+
+        <div class="cl-memory-badge" id="clMemoryBadge">
+            — Prototypes
+        </div>
+
+    </div>
+
+
+    <div
+        id="prototypeListContainer"
+        class="prototype-list"
+    >
+
+        <div class="empty-state">
+            Loading prototypes...
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- NEW PROTOTYPE REGISTRATION -->
+
+<div class="panel cl-register-panel">
+
+    <div class="panel-header">
+
+        <div>
+            <h3>
+                Add New Defect Prototype
+            </h3>
+
+            <p>
+                Extend the prototype memory using 1–5 representative
+                support images. No CNN retraining is required.
+            </p>
+        </div>
+
+        <div class="cl-fewshot-badge">
+            Few-Shot
+        </div>
+
+    </div>
+
+
+    <form id="novelDefectForm">
+
+        <div class="form-group">
+
+            <label for="prototypeName">
+                Defect Category Name <span style="color:var(--error-text)">*</span>
+            </label>
+
+            <input
+                type="text"
+                id="prototypeName"
+                name="class_name"
+                placeholder="Example: New_Solder_Defect"
+                required
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="supportImages">
+                Support Images <span style="color:var(--error-text)">*</span>
+            </label>
+
+            <input
+                type="file"
+                id="supportImages"
+                name="files"
+                accept="image/*"
+                multiple
+                required
+            >
+
+            <small>
+                Select 1–5 representative images of the same defect.
+            </small>
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="prototypeDescription">
+                Description <span style="color: var(--text-muted); font-weight:400">(optional)</span>
+            </label>
+
+            <input
+                type="text"
+                id="prototypeDescription"
+                name="description"
+                placeholder="Brief description of this defect type"
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="prototypeIPC">
+                IPC / Standard Reference <span style="color: var(--text-muted); font-weight:400">(optional)</span>
+            </label>
+
+            <input
+                type="text"
+                id="prototypeIPC"
+                name="standard_ref"
+                placeholder="e.g. IPC-A-610G Section 5.2.3"
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="prototypeSeverity">
+                Severity
+            </label>
+
+            <select id="prototypeSeverity" name="severity">
+                <option value="">— Select severity —</option>
+                <option value="Minor">Minor</option>
+                <option value="Major">Major</option>
+                <option value="Critical">Critical</option>
+            </select>
+
+        </div>
+
+
+        <button
+            type="submit"
+            class="primary-button"
+        >
+            <i class="fa-solid fa-plus"></i>
+            Add Prototype
+        </button>
+
+    </form>
+
+</div>
+
+
+</section>
+
+<!-- =========================================================
+     TAB 3: AUDIT REPORTS
+     ========================================================= -->
+
+<section
+    id="tab-analytics"
+    class="page-section"
+>
+
+<div class="page-heading">
+
+    <div>
+
+        <h2>
+            Audit Reports
+        </h2>
+
+        <p>
+            Review audit certificates generated
+            from completed PCB inspections.
+        </p>
+
+    </div>
+
+
+    <button
+        id="refreshReportsButton"
+        class="secondary-button"
+    >
+        Refresh
+    </button>
+
+</div>
+
+
+<div class="panel">
+
+    <div
+        id="reportsContainer"
+        class="reports-list"
+    >
+
+        <div class="empty-state">
+            Loading reports...
+        </div>
+
+    </div>
+
+</div>
+
+
+</section>
+
+<!-- =========================================================
+     TAB 4: UPGRADED STANDARDS RAG ASSISTANT
+     ========================================================= -->
+
+<section id="tab-rag" class="page-section">
+
+
+<div class="assistant-page">
+
+    <!-- Assistant Header -->
+    <div class="assistant-header">
+
+        <div class="assistant-identity">
+
+            <div class="assistant-avatar-large">
+                <i class="fa-solid fa-robot"></i>
+            </div>
+
+            <div>
+                <h2>ManufacturingRAG-QA Assistant</h2>
+                <p>Standards & Quality Intelligence</p>
+            </div>
+
+        </div>
+
+        <div class="assistant-status">
+            <span class="assistant-status-dot"></span>
+            Standards Grounded
+        </div>
+
+    </div>
+
+
+    <!-- Chat Area -->
+    <div class="assistant-chat">
+
+        <div
+            id="chatMessages"
+            class="assistant-messages"
+        >
+
+            <!-- Welcome -->
+            <div class="assistant-welcome">
+
+                <div class="assistant-welcome-icon">
+                    <i class="fa-solid fa-book-open"></i>
+                </div>
+
+                <h3>
+                    How can I help?
+                </h3>
+
+                <p>
+                    Ask questions about PCB manufacturing standards,
+                    IPC-A-610G acceptance criteria, soldering,
+                    rework procedures, or ISO 9001 requirements.
+                </p>
+
+            </div>
+
+
+            <!-- Initial Assistant Message -->
+            <div class="chat-message-row assistant-row">
+
+                <div class="message-avatar assistant-avatar">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+
+                <div class="message-content">
+
+                    <div class="message-sender">
+                        Standards Assistant
+                        <span>Just now</span>
+                    </div>
+
+                    <div class="chat-bubble assistant">
+
+                        <p>
+                            Hello! I can help you interpret
+                            manufacturing quality requirements.
+                        </p>
+
+                        <p>
+                            Ask me about PCB defects,
+                            IPC-A-610G acceptance criteria,
+                            Class 1 / 2 / 3 requirements,
+                            rework procedures, or ISO 9001.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Chat Input -->
+        <form
+            id="chatForm"
+            class="assistant-input-area"
+        >
+
+            <div class="assistant-input-wrapper">
+
+                <i class="fa-solid fa-message assistant-input-icon"></i>
+
+                <input
+                    type="text"
+                    id="chatInput"
+                    class="assistant-chat-input"
+                    placeholder="Ask a question about PCB / IPC / ISO standards..."
+                    autocomplete="off"
+                >
+
+                <button
+                    type="submit"
+                    class="assistant-send-button"
+                    aria-label="Send question"
+                >
+                    <i class="fa-solid fa-arrow-up"></i>
+                </button>
+
+            </div>
+
+            <div class="assistant-input-footer">
+                <span>
+                    <i class="fa-solid fa-shield-halved"></i>
+                    Standards-grounded response
+                </span>
+
+                <span>
+                    Press Enter to ask
+                </span>
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+</section>
+
+
+</main>
+
+<!-- =========================================================
+     LOADING OVERLAY
+     ========================================================= -->
+
+<div
+    id="loadingOverlay"
+    class="loading-overlay"
+>
+
+
+<div class="loading-box">
+
+    <div class="loading-spinner"></div>
+
+    <p id="loadingText">
+        Processing...
+    </p>
+
+</div>
+
+
+</div>
+
+<!-- =========================================================
+     TOAST CONTAINER
+     ========================================================= -->
+
+<div id="toastContainer"></div>
+
+<!-- =========================================================
+     AUDIT CERTIFICATE MODAL
+     ========================================================= -->
+
+<div
+    id="certModal"
+    class="modal"
+>
+
+<div class="modal-content">
+
+    <div class="modal-header">
+
+        <div>
+
+            <h2>
+                Audit Certificate
+            </h2>
+
+            <p>
+                Manufacturing inspection result
+            </p>
+
+        </div>
+
+
+        <button
+            id="closeCertModal"
+            class="modal-close"
+            type="button"
+        > x </button>
+
+    </div>
+
+
+    <div class="certificate">
+
+        <div class="certificate-header">
+
+            <strong>
+                ManufacturingRAG-QA
+            </strong>
+
+            <span>
+                Quality Inspection Certificate
+            </span>
+
+        </div>
+
+
+        <div class="certificate-grid">
+
+            <div>
+
+                <span>
+                    Report ID
+                </span>
+
+                <strong id="certReportId"> - </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Date
+                </span>
+
+                <strong id="certTimestamp"> - </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Inspection Result
+                </span>
+
+                <strong id="certPrediction"> - </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Confidence
+                </span>
+
+                <strong id="certConfidence"> - </strong>
+
+            </div>
+
+
+            <div>
+
+                <span>
+                    Audit Severity Index
+                </span>
+
+                <strong id="certASI"> - </strong>
+
+            </div>
+
+        </div>
+
+
+        <div class="certificate-footer">
+
+            <p>
+                This certificate records the result
+                generated by the PCB quality inspection system.
+            </p>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+</div>
+
+<script src="/js/app.js"></script>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+

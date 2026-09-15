@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Datasets
+Visa/
+*.zip
+*.tar
+*.tar.gz
+
+# Model weights / checkpoints
+*.pth
+*.pt
+*.ckpt
+*.onnx
+
+# Hugging Face / ML caches
+hf_cache/
+.cache/
+huggingface/
+wandb/
+
+# IDE
+.vscode/
+.idea/
+
+# Backup files
+*_backup.*
+*_before_*.*
+*.bak
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs / temporary files
+*.log
+*.tmp
+
+# Local generated inspection outputs
+fresh_inspection.json
+
+# Generated project data
+data/audit_logs/
+data/dataset/
+data/standards/
