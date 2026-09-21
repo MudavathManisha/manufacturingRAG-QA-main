@@ -34,6 +34,7 @@ const API = {
 let currentFile = null;
 let currentInspection = null;
 let currentReport = null;
+let inspectionReportContext = null;
 
 let originalImage = null;
 let overlayImage = null;
@@ -1973,7 +1974,27 @@ function initOperatingClass() {
    ------------------------------------------------------------ */
 
 function initKeyboardControls() {
-    document.addEventListener(
+    
+// ============================================================
+// FINAL ACTIVE REPORT CHAT CONTEXT
+// ============================================================
+
+function setActiveInspectionReport(report) {
+    if (report && typeof report === "object") {
+        inspectionReportContext = report;
+        console.log(
+            "[REPORT CHAT] Active report:",
+            inspectionReportContext
+        );
+    }
+}
+
+function clearActiveInspectionReport() {
+    inspectionReportContext = null;
+}
+
+
+document.addEventListener(
         "keydown",
         event => {
             if (event.key === "Escape") {
@@ -2030,141 +2051,1250 @@ if (
 
 
 
-/* =========================================================
-   STANDARDS RAG CHAT - RESTORED
-   ========================================================= */
+// ============================================================
+// CONVERSATIONAL STANDARDS ASSISTANT
+// ============================================================
+
+const standardsChatHistory = [];
+
+
+// ============================================================
+// INITIALIZE CHAT
+// ============================================================
 
 function initRAGChat() {
-    const chatForm = document.getElementById("chatForm");
-    const chatInput = document.getElementById("chatInput");
-    const chatMessages = document.getElementById("chatMessages");
 
-    if (!chatForm || !chatInput || !chatMessages) {
-        console.warn("RAG chat elements not found.");
+    const chatForm =
+        document.getElementById("chatForm");
+
+    const chatInput =
+        document.getElementById("chatInput");
+
+    const chatMessages =
+        document.getElementById("chatMessages");
+
+    if (
+        !chatForm ||
+        !chatInput ||
+        !chatMessages
+    ) {
+
+        console.warn(
+            "RAG chat elements not found."
+        );
+
         return;
     }
 
-    if (chatForm.dataset.ragInitialized === "true") return;
-    chatForm.dataset.ragInitialized = "true";
+    if (
+        chatForm.dataset.ragInitialized === "true"
+    ) {
 
-    chatForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
+        return;
+    }
 
-        const query = chatInput.value.trim();
-        if (!query) return;
+    chatForm.dataset.ragInitialized =
+        "true";
 
-        appendChatMessage(query, "user");
-        chatInput.value = "";
 
-        const loadingId = appendChatMessage(
-            "<i class='fa-solid fa-circle-notch fa-spin'></i> Retrieving standard clauses and synthesizing analysis...",
+    // ========================================================
+    // INITIAL ASSISTANT GREETING
+    // ========================================================
+
+    if (
+        chatMessages.children.length === 0
+    ) {
+
+        const welcomeMessage =
+            "Hello! 👋 Welcome to the Manufacturing Standards Assistant." +
+            "\n\n" +
+            "I can help with PCB/PCBA quality questions, " +
+            "IPC-A-610 requirements, defect acceptance criteria, " +
+            "inspection findings, and evidence from the available " +
+            "manufacturing standards." +
+            "\n\n" +
+            "What would you like to check?";
+
+        appendChatMessage(
+            formatMarkdownToHTML(
+                welcomeMessage
+            ),
             "assistant"
         );
 
-        try {
-            const res = await fetch("/api/rag/query", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    question: query,
-                    operating_class:
-                        typeof state !== "undefined"
-                            ? state.operatingClass
-                            : "Class 3"
-                })
+        standardsChatHistory.push({
+
+            role:
+                "assistant",
+
+            content:
+                welcomeMessage
+        });
+    }
+
+
+    // ========================================================
+    // FORM SUBMISSION
+    // ========================================================
+
+    chatForm.addEventListener(
+        "submit",
+        async function (e) {
+
+            e.preventDefault();
+
+            const query =
+                chatInput.value.trim();
+
+            if (!query) {
+                return;
+            }
+
+
+            // =================================================
+            // SHOW USER MESSAGE
+            // =================================================
+
+            appendChatMessage(
+                escapeHTML(query),
+                "user"
+            );
+
+
+            // Save user message
+            standardsChatHistory.push({
+
+                role:
+                    "user",
+
+                content:
+                    query
             });
 
-            if (!res.ok) {
-                throw new Error("HTTP " + res.status);
-            }
 
-            const data = await res.json();
+            // Clear input
+            chatInput.value = "";
 
-            const assistantDiv =
-                document.getElementById(loadingId);
 
-            if (assistantDiv) {
+            // =================================================
+            // SHOW LOADING MESSAGE
+            // =================================================
+
+            const loadingId =
+                appendChatMessage(
+
+                    "<i class='fa-solid " +
+                    "fa-circle-notch fa-spin'></i> " +
+                    "Thinking...",
+
+                    "assistant"
+                );
+
+
+            try {
+
+                // =============================================
+                // Operating class
+                // =============================================
+
+                let operatingClass =
+                    "Class 3";
+
+                if (
+                    typeof state !== "undefined" &&
+                    state &&
+                    state.operatingClass
+                ) {
+
+                    operatingClass =
+                        state.operatingClass;
+                }
+
+
+                // =============================================
+                // Send recent conversation
+                // =============================================
+
+                const response =
+                    await fetch(
+                        "/api/rag/query",
+                        {
+
+                            method:
+                                "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body:
+                                JSON.stringify({
+
+                                    question:
+                                        query,
+
+                                    operating_class:
+                                        operatingClass,
+
+                                    history:
+                                        standardsChatHistory
+                                            .slice(-9)
+                                })
+                        }
+                    );
+
+
+                // =============================================
+                // HTTP error
+                // =============================================
+
+                if (!response.ok) {
+
+                    let errorMessage =
+                        "Unable to process the request.";
+
+                    try {
+
+                        const errorData =
+                            await response.json();
+
+                        if (
+                            errorData &&
+                            errorData.answer
+                        ) {
+
+                            errorMessage =
+                                errorData.answer;
+
+                        } else if (
+                            errorData &&
+                            errorData.error
+                        ) {
+
+                            errorMessage =
+                                errorData.error;
+                        }
+
+                    } catch (_) {
+                        // Keep fallback message.
+                    }
+
+                    throw new Error(
+                        errorMessage
+                    );
+                }
+
+
+                // =============================================
+                // Parse response
+                // =============================================
+
+                const data =
+                    await response.json();
+
+
+                const assistantDiv =
+                    document.getElementById(
+                        loadingId
+                    );
+
+
+                if (!assistantDiv) {
+                    return;
+                }
+
+
+                // =============================================
+                // Assistant answer
+                // =============================================
+
+                const answer =
+                    data.answer ||
+                    "I wasn't able to generate an answer.";
+
+
                 assistantDiv.innerHTML =
                     formatMarkdownToHTML(
-                        data.answer ||
-                        "No answer was returned by the standards engine."
+                        answer
                     );
-            }
 
-            chatMessages.scrollTop =
-                chatMessages.scrollHeight;
 
-        } catch (err) {
-            console.error("RAG chat error:", err);
+                // =============================================
+                // Save assistant response
+                // =============================================
 
-            const assistantDiv =
-                document.getElementById(loadingId);
+                standardsChatHistory.push({
 
-            if (assistantDiv) {
-                assistantDiv.textContent =
-                    "Unable to query the standards database. Please try again.";
+                    role:
+                        "assistant",
+
+                    content:
+                        answer
+                });
+
+
+                // =============================================
+                // Scroll
+                // =============================================
+
+                chatMessages.scrollTop =
+                    chatMessages.scrollHeight;
+
+            } catch (err) {
+
+                console.error(
+                    "Standards Assistant error:",
+                    err
+                );
+
+
+                const assistantDiv =
+                    document.getElementById(
+                        loadingId
+                    );
+
+
+                if (assistantDiv) {
+
+                    assistantDiv.innerHTML =
+                        formatMarkdownToHTML(
+
+                            err.message ||
+                            "Unable to query the standards " +
+                            "knowledge base. Please try again."
+                        );
+                }
             }
         }
-    });
-}
-
-function askPreset(questionText) {
-    const input = document.getElementById("chatInput");
-    const form = document.getElementById("chatForm");
-
-    if (!input || !form) return;
-
-    input.value = questionText;
-    form.dispatchEvent(
-        new Event("submit", { bubbles: true, cancelable: true })
     );
 }
 
-function appendChatMessage(content, sender) {
+
+// ============================================================
+// PRESET QUESTIONS
+// ============================================================
+
+function askPreset(questionText) {
+
+    const input =
+        document.getElementById(
+            "chatInput"
+        );
+
+    const form =
+        document.getElementById(
+            "chatForm"
+        );
+
+    if (
+        !input ||
+        !form
+    ) {
+
+        return;
+    }
+
+    input.value =
+        questionText;
+
+    form.dispatchEvent(
+        new Event(
+            "submit",
+            {
+                bubbles:
+                    true,
+
+                cancelable:
+                    true
+            }
+        )
+    );
+}
+
+
+// ============================================================
+// APPEND CHAT MESSAGE
+// ============================================================
+
+function appendChatMessage(
+    content,
+    sender
+) {
+
     const id =
         "msg-" +
         Date.now() +
         "-" +
-        Math.random().toString(36).slice(2);
+        Math.random()
+            .toString(36)
+            .slice(2);
 
-    const div = document.createElement("div");
 
-    div.id = id;
-    div.className = "chat-bubble " + sender;
-    div.innerHTML = content;
+    const div =
+        document.createElement(
+            "div"
+        );
+
+
+    div.id =
+        id;
+
+
+    div.className =
+        "chat-bubble " +
+        sender;
+
+
+    div.innerHTML =
+        content;
+
 
     const container =
-        document.getElementById("chatMessages");
+        document.getElementById(
+            "chatMessages"
+        );
 
-    if (!container) return id;
 
-    container.appendChild(div);
-    container.scrollTop = container.scrollHeight;
+    if (!container) {
+
+        return id;
+    }
+
+
+    container.appendChild(
+        div
+    );
+
+
+    container.scrollTop =
+        container.scrollHeight;
+
 
     return id;
 }
 
-function formatMarkdownToHTML(text) {
-    if (!text) return "";
 
-    return String(text)
-        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-        .replace(/\*(.*?)\*/g, "<em>$1</em>")
-        .replace(
-            /^> (.*$)/gim,
-            "<blockquote>$1</blockquote>"
-        )
-        .replace(
-            /^- (.*$)/gim,
-            "<li>$1</li>"
-        )
-        .replace(/\n\n/g, "<br><br>")
-        .replace(/\n/g, "<br>");
+// ============================================================
+// ESCAPE USER INPUT
+// ============================================================
+//
+// Prevents user-entered HTML from being interpreted as markup.
+// ============================================================
+
+function escapeHTML(value) {
+
+    const div =
+        document.createElement(
+            "div"
+        );
+
+    div.textContent =
+        String(value ?? "");
+
+
+    return div.innerHTML;
 }
 
-/* Initialize after DOM is ready */
-document.addEventListener("DOMContentLoaded", function () {
-    initRAGChat();
-});
+
+// ============================================================
+// MARKDOWN → HTML
+// ============================================================
+//
+// Lightweight renderer for assistant responses.
+// ============================================================
+
+function formatMarkdownToHTML(text) {
+
+    if (!text) {
+        return "";
+    }
+
+
+    let html =
+        escapeHTML(
+            String(text)
+        );
+
+
+    // Bold
+    html =
+        html.replace(
+            /\*\*(.*?)\*\*/g,
+            "<strong>$1</strong>"
+        );
+
+
+    // Italic
+    html =
+        html.replace(
+            /\*(.*?)\*/g,
+            "<em>$1</em>"
+        );
+
+
+    // Blockquote
+    html =
+        html.replace(
+            /^&gt; (.*)$/gim,
+            "<blockquote>$1</blockquote>"
+        );
+
+
+    // Bullet lists
+    html =
+        html.replace(
+            /(?:^|\n)- (.*)(?=\n|$)/g,
+            "<li>$1</li>"
+        );
+
+
+    // Convert consecutive list items
+    html =
+        html.replace(
+            /(<li>.*?<\/li>)(?:<br>|$)+/gs,
+            "<ul>$1</ul>"
+        );
+
+
+    // Blank lines
+    html =
+        html.replace(
+            /\n\n/g,
+            "<br><br>"
+        );
+
+
+    // Remaining line breaks
+    html =
+        html.replace(
+            /\n/g,
+            "<br>"
+        );
+
+
+    return html;
+}
+
+
+// ============================================================
+// INITIALIZE AFTER DOM LOAD
+// ============================================================
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        initRAGChat();
+
+    }
+);
+
+
+/* ============================================================
+   INSPECTION REPORT ANALYZER
+   ============================================================ */
+
+function initInspectionReportAnalyzer() {
+
+    if (document.getElementById(
+        "inspectionReportAnalyzer"
+    )) {
+        return;
+    }
+
+    const chatForm =
+        document.getElementById("chatForm");
+
+    if (!chatForm) {
+        return;
+    }
+
+    const panel =
+        document.createElement("section");
+
+    panel.id =
+        "inspectionReportAnalyzer";
+
+    panel.className =
+        "inspection-report-analyzer";
+
+    panel.innerHTML = `
+        <div class="report-analyzer-header">
+            <strong>Inspection Report</strong>
+        </div>
+
+        <div class="report-analyzer-controls">
+
+            <input
+                id="inspectionReportFile"
+                type="file"
+                accept=".pdf,.txt,.html,.htm,.md"
+                style="display:none"
+            >
+
+            <button
+                type="button"
+                id="chooseInspectionReport"
+            >
+                Choose Report
+            </button>
+
+            <span
+                id="inspectionReportFilename"
+            >
+                No report selected
+            </span>
+
+            <button
+                type="button"
+                id="analyzeInspectionReport"
+                disabled
+            >
+                Analyze Report
+            </button>
+
+            <button
+                type="button"
+                id="clearInspectionReport"
+                style="display:none"
+            >
+                Clear Report
+            </button>
+
+        </div>
+
+        <div
+            id="inspectionReportStatus"
+            class="inspection-report-status"
+        ></div>
+
+        <div
+            id="inspectionReportSummary"
+            style="display:none"
+        ></div>
+    `;
+
+    chatForm.parentNode.insertBefore(
+        panel,
+        chatForm
+    );
+
+    const fileInput =
+        document.getElementById(
+            "inspectionReportFile"
+        );
+
+    const chooseButton =
+        document.getElementById(
+            "chooseInspectionReport"
+        );
+
+    const analyzeButton =
+        document.getElementById(
+            "analyzeInspectionReport"
+        );
+
+    const clearButton =
+        document.getElementById(
+            "clearInspectionReport"
+        );
+
+    chooseButton.addEventListener(
+        "click",
+        () => fileInput.click()
+    );
+
+    fileInput.addEventListener(
+        "change",
+        () => {
+
+            const file =
+                fileInput.files?.[0];
+
+            const filename =
+                document.getElementById(
+                    "inspectionReportFilename"
+                );
+
+            if (!file) {
+
+                filename.textContent =
+                    "No report selected";
+
+                analyzeButton.disabled =
+                    true;
+
+                return;
+            }
+
+            filename.textContent =
+                file.name;
+
+            analyzeButton.disabled =
+                false;
+        }
+    );
+
+    analyzeButton.addEventListener(
+        "click",
+        analyzeInspectionReport
+    );
+
+    clearButton.addEventListener(
+        "click",
+        clearInspectionReport
+    );
+}
+
+
+async function analyzeInspectionReport() {
+
+    const fileInput =
+        document.getElementById(
+            "inspectionReportFile"
+        );
+
+    const status =
+        document.getElementById(
+            "inspectionReportStatus"
+        );
+
+    const analyzeButton =
+        document.getElementById(
+            "analyzeInspectionReport"
+        );
+
+    const clearButton =
+        document.getElementById(
+            "clearInspectionReport"
+        );
+
+    const file =
+        fileInput?.files?.[0];
+
+    if (!file) {
+        return;
+    }
+
+    status.textContent =
+        "Analyzing inspection report...";
+
+    analyzeButton.disabled =
+        true;
+
+    const formData =
+        new FormData();
+
+    formData.append(
+        "file",
+        file
+    );
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/rag/report",
+                {
+                    method: "POST",
+                    body: formData
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                "Report analysis failed."
+            );
+        }
+
+        inspectionReportContext =
+            data.report;
+
+        try {
+
+            sessionStorage.setItem(
+                "manufacturingRAGInspectionReport",
+                JSON.stringify(
+                    inspectionReportContext
+                )
+            );
+
+        } catch (_) {}
+
+        renderInspectionReportSummary(
+            inspectionReportContext
+        );
+
+        status.textContent =
+            "✓ Inspection report analyzed successfully.";
+
+        clearButton.style.display =
+            "inline-block";
+
+        appendChatMessage(
+            "assistant",
+            "Inspection report loaded successfully. You can now ask questions about this report."
+        );
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+        status.textContent =
+            "❌ " +
+            (
+                error.message ||
+                "Failed to analyze report."
+            );
+
+    } finally {
+
+        analyzeButton.disabled =
+            false;
+    }
+}
+
+
+function renderInspectionReportSummary(report) {
+
+    const summary =
+        document.getElementById(
+            "inspectionReportSummary"
+        );
+
+    if (!summary || !report) {
+        return;
+    }
+
+    const value =
+        (key, fallback = "—") =>
+            report[key] ??
+            fallback;
+
+    summary.style.display =
+        "block";
+
+    summary.innerHTML = `
+        <div class="active-report-badge">
+            ✓ ACTIVE INSPECTION REPORT
+        </div>
+
+        <div class="inspection-report-grid">
+
+            <div>
+                <strong>Report ID</strong>
+                <span>${escapeHTML(
+                    String(
+                        value("report_id")
+                    )
+                )}</span>
+            </div>
+
+            <div>
+                <strong>Defect</strong>
+                <span>${escapeHTML(
+                    String(
+                        value("defect")
+                    )
+                )}</span>
+            </div>
+
+            <div>
+                <strong>Standard</strong>
+                <span>${escapeHTML(
+                    String(
+                        value("standard")
+                    )
+                )}</span>
+            </div>
+
+            <div>
+                <strong>Clause</strong>
+                <span>${escapeHTML(
+                    String(
+                        value("ipc_clause")
+                    )
+                )}</span>
+            </div>
+
+            <div>
+                <strong>Operating Class</strong>
+                <span>${escapeHTML(
+                    String(
+                        value(
+                            "operating_class"
+                        )
+                    )
+                )}</span>
+            </div>
+
+            <div>
+                <strong>Decision</strong>
+                <span>${escapeHTML(
+                    String(
+                        value("decision")
+                    )
+                )}</span>
+            </div>
+
+            <div>
+                <strong>Severity</strong>
+                <span>${escapeHTML(
+                    String(
+                        value("severity")
+                    )
+                )}</span>
+            </div>
+
+            <div>
+                <strong>Required Action</strong>
+                <span>${escapeHTML(
+                    String(
+                        value(
+                            "required_action"
+                        )
+                    )
+                )}</span>
+            </div>
+
+        </div>
+    `;
+}
+
+
+function clearInspectionReport() {
+
+    inspectionReportContext =
+        null;
+
+    try {
+
+        sessionStorage.removeItem(
+            "manufacturingRAGInspectionReport"
+        );
+
+    } catch (_) {}
+
+    const fileInput =
+        document.getElementById(
+            "inspectionReportFile"
+        );
+
+    const filename =
+        document.getElementById(
+            "inspectionReportFilename"
+        );
+
+    const status =
+        document.getElementById(
+            "inspectionReportStatus"
+        );
+
+    const summary =
+        document.getElementById(
+            "inspectionReportSummary"
+        );
+
+    const clearButton =
+        document.getElementById(
+            "clearInspectionReport"
+        );
+
+    const analyzeButton =
+        document.getElementById(
+            "analyzeInspectionReport"
+        );
+
+    if (fileInput) {
+        fileInput.value = "";
+    }
+
+    if (filename) {
+        filename.textContent =
+            "No report selected";
+    }
+
+    if (status) {
+        status.textContent =
+            "";
+    }
+
+    if (summary) {
+        summary.style.display =
+            "none";
+
+        summary.innerHTML =
+            "";
+    }
+
+    if (clearButton) {
+        clearButton.style.display =
+            "none";
+    }
+
+    if (analyzeButton) {
+        analyzeButton.disabled =
+            true;
+    }
+}
+
+
+function restoreInspectionReport() {
+
+    try {
+
+        const saved =
+            sessionStorage.getItem(
+                "manufacturingRAGInspectionReport"
+            );
+
+        if (!saved) {
+            return;
+        }
+
+        const parsed =
+            JSON.parse(saved);
+
+        if (
+            parsed &&
+            typeof parsed === "object"
+        ) {
+
+            inspectionReportContext =
+                parsed;
+
+            renderInspectionReportSummary(
+                parsed
+            );
+
+            const clearButton =
+                document.getElementById(
+                    "clearInspectionReport"
+                );
+
+            if (clearButton) {
+                clearButton.style.display =
+                    "inline-block";
+            }
+
+            const status =
+                document.getElementById(
+                    "inspectionReportStatus"
+                );
+
+            if (status) {
+                status.textContent =
+                    "✓ Previous report context restored.";
+            }
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "Could not restore report:",
+            error
+        );
+    }
+}
+
+
+/* ============================================================
+   CERTIFICATE PDF DOWNLOAD
+   ============================================================ */
+
+async function downloadCertificatePDF(
+    report = currentReport
+) {
+
+    if (!report) {
+
+        alert(
+            "No inspection report is available for the certificate."
+        );
+
+        return;
+    }
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/audit/certificate/pdf",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+                    body: JSON.stringify({
+                        report: report
+                    })
+                }
+            );
+
+        if (!response.ok) {
+
+            let message =
+                "Certificate PDF generation failed.";
+
+            try {
+
+                const data =
+                    await response.json();
+
+                message =
+                    data.error ||
+                    message;
+
+            } catch (_) {}
+
+            throw new Error(
+                message
+            );
+        }
+
+        const blob =
+            await response.blob();
+
+        const url =
+            URL.createObjectURL(
+                blob
+            );
+
+        const link =
+            document.createElement(
+                "a"
+            );
+
+        link.href =
+            url;
+
+        const reportId =
+            report.report_id ||
+            report.id ||
+            "inspection";
+
+        link.download =
+            `ManufacturingRAG-QA_Certificate_${reportId}.pdf`;
+
+        document.body.appendChild(
+            link
+        );
+
+        link.click();
+
+        link.remove();
+
+        setTimeout(
+            () =>
+                URL.revokeObjectURL(
+                    url
+                ),
+            1000
+        );
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+        alert(
+            error.message ||
+            "Could not download certificate PDF."
+        );
+    }
+}
+
+
+/* ============================================================
+   ADD CERTIFICATE DOWNLOAD BUTTON
+   ============================================================ */
+
+function addCertificateDownloadButton() {
+
+    if (
+        document.getElementById(
+            "downloadCertificatePdfButton"
+        )
+    ) {
+        return;
+    }
+
+    const candidates =
+        Array.from(
+            document.querySelectorAll(
+                "button"
+            )
+        );
+
+    const certificateButton =
+        candidates.find(
+            button =>
+                /certificate/i.test(
+                    button.textContent || ""
+                )
+        );
+
+    if (!certificateButton) {
+        return;
+    }
+
+    const button =
+        document.createElement(
+            "button"
+        );
+
+    button.id =
+        "downloadCertificatePdfButton";
+
+    button.type =
+        "button";
+
+    button.textContent =
+        "Download Certificate PDF";
+
+    button.addEventListener(
+        "click",
+        () =>
+            downloadCertificatePDF(
+                currentReport
+            )
+    );
+
+    certificateButton.parentNode.appendChild(
+        button
+    );
+}
+
+
+/* ============================================================
+   INITIALIZE REPORT FEATURES
+   ============================================================ */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+        initInspectionReportAnalyzer();
+
+        setTimeout(
+            restoreInspectionReport,
+            300
+        );
+
+        setTimeout(
+            addCertificateDownloadButton,
+            1000
+        );
+    }
+);
+
