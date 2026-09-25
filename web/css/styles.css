@@ -4051,3 +4051,122 @@ RESPONSIVE
 .assistant-page .suggested-question small {
     color: #000000;
 }
+
+/* ============================================================
+   ACTION BUTTON STYLES
+   ============================================================ */
+
+/* Generate Audit Certificate — Tab 1 */
+#generateReportButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 22px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: opacity 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+    letter-spacing: 0.01em;
+    margin-top: 8px;
+}
+
+#generateReportButton:hover:not(:disabled) {
+    opacity: 0.88;
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+}
+
+#generateReportButton:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* Download Certificate PDF — Tab 1 (dynamically injected by JS) */
+#downloadCertificatePdfButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    margin-left: 10px;
+    padding: 10px 22px;
+    background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: opacity 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 14px rgba(6, 182, 212, 0.35);
+    letter-spacing: 0.01em;
+}
+
+#downloadCertificatePdfButton:hover {
+    opacity: 0.88;
+    box-shadow: 0 6px 20px rgba(6, 182, 212, 0.5);
+}
+
+#downloadCertificatePdfButton:active {
+    transform: scale(0.97);
+}
+
+/* Choose Report, Analyze Report, Clear Report — Tab 4 */
+#chooseInspectionReport,
+#analyzeInspectionReport,
+#clearInspectionReport {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: opacity 0.2s, box-shadow 0.2s, background 0.2s;
+    border: none;
+    letter-spacing: 0.01em;
+}
+
+#chooseInspectionReport {
+    background: var(--bg-surface);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+}
+
+#chooseInspectionReport:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-focus);
+}
+
+#analyzeInspectionReport {
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+}
+
+#analyzeInspectionReport:hover:not(:disabled) {
+    opacity: 0.88;
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+}
+
+#analyzeInspectionReport:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+#clearInspectionReport {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+#clearInspectionReport:hover {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: var(--danger);
+}

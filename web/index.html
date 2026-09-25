@@ -13,6 +13,9 @@
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
 >
 
+<!-- Favicon — prevents 404 in console -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%230ea5e9'/><text y='.9em' font-size='80' x='10'>🔬</text></svg>">
+
 </head>
 
 <body>
@@ -446,240 +449,73 @@
 
 <div class="page-heading">
     <div>
-        <h2>
-            Continual Learning
-        </h2>
-
+        <h2>Continual Learning</h2>
         <p>
-            Incremental PCB learning and few-shot prototype memory.
+            Automatic PCB defect discovery — when an unknown defect is found during
+            inspection it is auto-registered and future occurrences are recognized.
+            No retraining required.
         </p>
     </div>
+    <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;">
+        <span style="font-size:0.85rem;color:var(--text-muted);">
+            Known: <strong id="clActivePrototypesCount">—</strong>
+        </span>
+        <span style="font-size:0.85rem;color:#22c55e;">
+            Newly learned: <strong id="clNewlyLearnedCount">0</strong>
+        </span>
+    </div>
 </div>
 
 
-<!-- CONTINUAL LEARNING SYSTEM STATUS -->
-
-<div class="cl-overview">
-
-    <div class="cl-title-row">
-        <div>
-            <h3>System Status</h3>
-            <p>
-                Live operational status of the few-shot continual learning engine.
-            </p>
-        </div>
-
-        <div class="cl-status">
-            <span class="cl-status-dot"></span>
-            Ready
-        </div>
-    </div>
-
-
-    <div class="cl-metrics">
-
-        <div class="cl-metric">
-            <span>Active Prototypes</span>
-            <strong id="clActivePrototypesCount">—</strong>
-        </div>
-
-        <div class="cl-metric">
-            <span>Learning Paradigm</span>
-            <strong>Few-Shot ProtoNet</strong>
-        </div>
-
-        <div class="cl-metric">
-            <span>Min. Support Images</span>
-            <strong>1 – 5 images</strong>
-        </div>
-
-        <div class="cl-metric">
-            <span>Model Retraining</span>
-            <strong>Not Required</strong>
-        </div>
-
-    </div>
-
-
-    <div class="cl-conclusion">
-        <i class="fa-solid fa-circle-check"></i>
-
-        <div>
-            <strong>Zero catastrophic forgetting</strong>
-            <p>
-                New defect categories are learned from as few as one support
-                image without overwriting existing knowledge.
-            </p>
-        </div>
-    </div>
-
-</div>
-
-
-<!-- PROTOTYPE MEMORY -->
+<!-- KNOWN PROTOTYPE MEMORY -->
 
 <div class="panel cl-prototype-panel">
 
     <div class="panel-header">
-
         <div>
-            <h3>
-                Few-Shot Prototype Memory
-            </h3>
-
-            <p>
-                Defect prototypes currently available to ProtoNet.
-            </p>
+            <h3>Known Prototype Memory</h3>
+            <p>Defect prototypes currently loaded into ProtoNet (pre-trained + auto-learned).</p>
         </div>
-
-        <div class="cl-memory-badge" id="clMemoryBadge">
-            — Prototypes
-        </div>
-
+        <div class="cl-memory-badge" id="clMemoryBadge">— Prototypes</div>
     </div>
 
-
-    <div
-        id="prototypeListContainer"
-        class="prototype-list"
-    >
-
-        <div class="empty-state">
-            Loading prototypes...
-        </div>
-
+    <div id="prototypeListContainer" class="prototype-list">
+        <div class="empty-state">Loading prototypes...</div>
     </div>
 
 </div>
 
 
-<!-- NEW PROTOTYPE REGISTRATION -->
+<!-- NEWLY LEARNED DEFECTS -->
 
 <div class="panel cl-register-panel">
 
     <div class="panel-header">
-
         <div>
-            <h3>
-                Add New Defect Prototype
-            </h3>
-
-            <p>
-                Extend the prototype memory using 1–5 representative
-                support images. No CNN retraining is required.
-            </p>
+            <h3>Newly Learned Defects</h3>
+            <p>Defects automatically identified and registered this session.</p>
         </div>
-
-        <div class="cl-fewshot-badge">
-            Few-Shot
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+            <button id="clearLearnedHistoryBtn" style="background:transparent;border:1px solid #475569;color:var(--text-muted);border-radius:4px;padding:3px 10px;font-size:0.75rem;cursor:pointer;" title="Reset newly learned defects history for demo">Clear History</button>
+            <div class="cl-fewshot-badge" style="background:#22c55e;color:#fff;">Auto-Learned</div>
         </div>
-
     </div>
 
-
-    <form id="novelDefectForm">
-
-        <div class="form-group">
-
-            <label for="prototypeName">
-                Defect Category Name <span style="color:var(--error-text)">*</span>
-            </label>
-
-            <input
-                type="text"
-                id="prototypeName"
-                name="class_name"
-                placeholder="Example: New_Solder_Defect"
-                required
-            >
-
+    <div id="newlyLearnedContainer" class="prototype-list">
+        <div class="empty-state" id="newlyLearnedEmpty">
+            <i class="fa-solid fa-brain" style="font-size:2rem;opacity:0.3;display:block;margin-bottom:0.5rem;"></i>
+            No new defects learned yet.<br>
+            Run an inspection — if an unknown defect is detected it will be automatically
+            registered and appear here.
         </div>
-
-
-        <div class="form-group">
-
-            <label for="supportImages">
-                Support Images <span style="color:var(--error-text)">*</span>
-            </label>
-
-            <input
-                type="file"
-                id="supportImages"
-                name="files"
-                accept="image/*"
-                multiple
-                required
-            >
-
-            <small>
-                Select 1–5 representative images of the same defect.
-            </small>
-
-        </div>
-
-
-        <div class="form-group">
-
-            <label for="prototypeDescription">
-                Description <span style="color: var(--text-muted); font-weight:400">(optional)</span>
-            </label>
-
-            <input
-                type="text"
-                id="prototypeDescription"
-                name="description"
-                placeholder="Brief description of this defect type"
-            >
-
-        </div>
-
-
-        <div class="form-group">
-
-            <label for="prototypeIPC">
-                IPC / Standard Reference <span style="color: var(--text-muted); font-weight:400">(optional)</span>
-            </label>
-
-            <input
-                type="text"
-                id="prototypeIPC"
-                name="standard_ref"
-                placeholder="e.g. IPC-A-610G Section 5.2.3"
-            >
-
-        </div>
-
-
-        <div class="form-group">
-
-            <label for="prototypeSeverity">
-                Severity
-            </label>
-
-            <select id="prototypeSeverity" name="severity">
-                <option value="">— Select severity —</option>
-                <option value="Minor">Minor</option>
-                <option value="Major">Major</option>
-                <option value="Critical">Critical</option>
-            </select>
-
-        </div>
-
-
-        <button
-            type="submit"
-            class="primary-button"
-        >
-            <i class="fa-solid fa-plus"></i>
-            Add Prototype
-        </button>
-
-    </form>
+    </div>
 
 </div>
 
 
 </section>
+
+
 
 <!-- =========================================================
      TAB 3: AUDIT REPORTS

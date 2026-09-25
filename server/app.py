@@ -1335,6 +1335,15 @@ def parse_inspection_report_text(text):
 
     defect = clean(defect)
 
+    if not defect:
+        match = re.search(
+            r"\bDefect(?: Type)?\s*:\s*([A-Za-z0-9_\-/ ]+?)(?=\s*\n|$)",
+            text,
+            re.IGNORECASE
+        )
+        if match:
+            defect = clean(match.group(1))
+
     # ---------------------------------------------------------
     # CBAM
     # ---------------------------------------------------------
@@ -1391,10 +1400,19 @@ def parse_inspection_report_text(text):
     # SEVERITY
     # ---------------------------------------------------------
     severity = first_match(
-        r"\bSeverity\s*:\s*([^\n]+)"
+        r"\b(?:Audit\s+)?Severity\s*:\s*([^\n]+)"
     )
 
     severity = clean(severity)
+
+    # ---------------------------------------------------------
+    # CLAUSE
+    # ---------------------------------------------------------
+    ipc_clause = first_match(
+        r"\b(?:Ipc\s+)?Clause\s*:\s*([^\n]+)"
+    )
+
+    ipc_clause = clean(ipc_clause)
 
     # ---------------------------------------------------------
     # REQUIRED ACTION
@@ -1406,7 +1424,9 @@ def parse_inspection_report_text(text):
         r"\bRequired\s+Action\s*\n\s*([^\n]+)",
         r"\bRequired\s+Action\s+([^\n]+)",
         r"\bAction\s*:\s*([^\n]+)",
+        r"\bRecommended\s+Procedure\s*:\s*([^\n]+)",
     ]
+
 
     for pattern in patterns:
 
@@ -1444,6 +1464,7 @@ def parse_inspection_report_text(text):
     ipc_clause = ""
 
     clause_patterns = [
+        r"\bIpc\s+Clause\s*:\s*([^\n]+)",
         r"\bClause\s+([0-9]+(?:\.[0-9]+)*)",
         r"\bIPC-A-610[A-Z]?\s*\|\s*Clause\s+([0-9]+(?:\.[0-9]+)*)",
         r"\bSection\s+([0-9]+(?:\.[0-9]+)*)",
@@ -4669,13 +4690,22 @@ def query_standards():
                 "response": "Standards RAG engine is currently unavailable."
             }), 503
 
+        # Inject context into the question so the RAG engine understands what we're talking about
+        context_query = question
+        if isinstance(report, dict):
+            defect = report.get("defect", report.get("prediction", {}).get("predicted_class", "a defect"))
+            severity = report.get("severity", report.get("inspection_summary", {}).get("audit_severity", "Unknown"))
+            context_query = f"Context: The user is asking about a PCB with '{defect}' (Severity: {severity}). Question: {question}"
+
         result = engine.answer_standards_query(
-            question,
+            context_query,
             operating_class=data.get("operating_class", "Class 3")
         )
 
+        answer_text = result.get("answer", str(result)) if isinstance(result, dict) else str(result)
+
         return jsonify({
-            "answer": result,
+            "answer": answer_text,
             "response": result
         })
 
